@@ -21,24 +21,29 @@ import time
 
 import googleapiclient.discovery
 from oauth2client.client import GoogleCredentials
-from google.cloud import resource_manager
 from six.moves import input
 
 # [START list_project]
 
 
-def list_projects(client):
-    # result = service.projects().list().execute()
-    # return result.get('projects', []) if 'project' in result else None
-    return client.list_projects()
+def list_projects(service):
+    result = service.projects().list().execute()
+    return result.get('projects', [])
 # [END list_project]
 
 # [START list_instances]
 
 
 def list_instances(compute, project):
-    result = compute.instances().list(project=project).execute()
-    return result['items'] if 'items' in result else None
+    request = compute.instances().aggregatedList(project=project).execute()
+    instance_list = []
+    if request is not None:
+        response = request.execute()
+        for name, instance_scoped_list in response['items'].items():
+            info = instance_scoped_list.get("instances")
+            if info is not None:
+                instance_list.append(info[0]['name'])
+    return instance_list
 # [END list_instances]
 
 
@@ -101,26 +106,26 @@ def wait_for_operation(compute, project, zone, operation):
 
 # [START run]
 def main(zone, wait=True):
-    # credentials = GoogleCredentials.get_application_default()
-    # service = googleapiclient.discovery.build(
-    #     'cloudresourcemanager', 'v1', credentials=credentials)
-    client = resource_manager.Client
+    credentials = GoogleCredentials.get_application_default()
+    service = googleapiclient.discovery.build('cloudresourcemanager',
+                                              'v1', credentials=credentials)
     compute = googleapiclient.discovery.build('compute', 'v1')
     instance_name = "bda-db-1"
 
-    projects = list_projects(client)
+    projects = list_projects(service)
 
     for project in projects:
+        projectId = project['projectId']
         print('Creating instance.')
-        instances = list_instances(compute, project)
+        instances = list_instances(compute, projectId)
 
         if instance_name not in instances:
             operation = create_instance(
-                compute, project, zone, instance_name)
+                compute, projectId, zone, instance_name)
             wait_for_operation(
-                compute, project, zone, operation['name'])
+                compute, projectId, zone, operation['name'])
 
-            print('Project %s successfully deployed.' % (project))
+            print('Project %s successfully deployed.' % (project['projectId']))
 
 
 if __name__ == '__main__':
