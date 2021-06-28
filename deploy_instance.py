@@ -20,6 +20,7 @@ import os
 import time
 
 import googleapiclient.discovery
+import googleapiclient.errors
 from oauth2client.client import GoogleCredentials
 from six.moves import input
 
@@ -31,11 +32,65 @@ def list_projects(service):
     return result.get('projects', [])
 # [END list_project]
 
-# [START list_instances]
+
+# [START create_firewall]
 
 
-def list_instances(compute, project):
-    request = compute.instances().aggregatedList(project=project).execute()
+def create_firewall(compute, project):
+    request = compute.firewalls().list(project=project)
+    firewalls = []
+    firewall_rule = "sql-mon"
+    if request is not None:
+        response = request.execute()
+        for firewall in response['items']:
+            firewalls.append(firewall.get("name"))
+    if firewall_rule not in firewalls:
+        try:
+            config = {
+                "name": "sql-mon",
+                "priority": 10000,
+                "network": "global/networks/default",
+                "allowed": [{
+                    "IPProtocol": "tcp",
+                }],
+                "sourceRanges": [
+                    "130.63.0.0/16"
+                ],
+            }
+            compute.firewalls().insert(
+                project=project,
+                body=config).execute()
+        except googleapiclient.errors.HttpError:
+            print("Firewall have error while deployed")
+        else:
+            print("Firewall successfully deployed")
+
+# [END create_firewall]
+
+
+# [START choose_zone]
+
+
+def choose_zone(compute):
+    # TODO: Using bulk instance API
+    projectID = "img-store"
+    region = "us-east"
+    request = compute.zones().list(project=projectID)
+    if request is not None:
+        response = request.execute()
+        for zone in response['items']:
+            return zone['name'] if zone['name'].startswith(region) and zone['status'] == 'UP' else None
+
+
+# [END choose_zone]
+
+# [START create_instance]
+
+
+def create_instance(compute, project, zone):
+    name = "bda-db-1"
+    # Check instances in project
+    request = compute.instances().aggregatedList(project=project)
     instance_list = []
     if request is not None:
         response = request.execute()
@@ -43,44 +98,38 @@ def list_instances(compute, project):
             info = instance_scoped_list.get("instances")
             if info is not None:
                 instance_list.append(info[0]['name'])
-    return instance_list
-# [END list_instances]
+    if name not in instance_list:
+        # Configure the machine
+        machine_type = "zones/{}/machineTypes/n1-standard-1".format(zone)
+        image = "projects/img-store/global/images/deb-sql-mongo-template-1-image-4"
+        diskType = "projects/{project}/zones/{zone}/diskTypes/pd-ssd".format(
+            project=project, zone=zone)
 
+        config = {
+            'name': name,
+            'machineType': machine_type,
 
-# [START create_instance]
-def create_instance(compute, project, zone, name):
-    # Configure the machine
-    machine_type = "zones/%s/machineTypes/n1-standard-1" % zone
-    image = "projects/img-store/global/images/deb-sql-mongo-template-1-image-4"
-
-    config = {
-        'name': name,
-        'machineType': machine_type,
-
-        # Specify the boot disk and the image to use as a source.
-        'disks': [
-            {
-                'boot': True,
-                'initializeParams': {
-                    'diskType': 'pd-ssd'
+            # Specify the boot disk and the image to use as a source.
+            'disks': [
+                {
+                    'boot': True,
+                    'autoDelete': True,
+                    'initializeParams': {
+                        'diskType': diskType,
+                        'sourceImage': image,
+                    }
                 }
-            }
-        ],
+            ],
 
-        # Metadata is readable from the instance and allows you to
-        # pass configuration from deployment scripts to instances.
-        'metadata': {
-            'items': [{
-                'key': 'image',
-                'value': image
+            'networkInterfaces': [{
+                'network': 'global/networks/default'
             }]
         }
-    }
+        return compute.instances().insert(
+            project=project,
+            zone=zone,
+            body=config).execute()
 
-    return compute.instances().insert(
-        project=project,
-        zone=zone,
-        body=config).execute()
 # [END create_instance]
 
 # [START wait_for_operation]
@@ -99,47 +148,49 @@ def wait_for_operation(compute, project, zone, operation):
             if 'error' in result:
                 raise Exception(result['error'])
             return result
-
-        time.sleep(1)
 # [END wait_for_operation]
 
+# [START authorize_compute]
 
-# [START run]
-def main(zone, wait=True):
+
+def authorize_compute():
+    credentials = GoogleCredentials.get_application_default()
+    compute = googleapiclient.discovery.build(
+        'compute', 'v1', credentials=credentials)
+    return compute
+# [END authorize_compute]
+
+# [START authorize_service]
+
+
+def authorize_service():
     credentials = GoogleCredentials.get_application_default()
     service = googleapiclient.discovery.build('cloudresourcemanager',
                                               'v1', credentials=credentials)
-    compute = googleapiclient.discovery.build('compute', 'v1')
-    instance_name = "bda-db-1"
+    return service
+# [END authorize_service]
 
+# [START run]
+
+
+def main(wait=True):
+    compute = authorize_compute()
+    service = authorize_service()
     projects = list_projects(service)
-
+    zone = choose_zone(compute)
+    assert zone != None, "No zone start with us-east is up"
     for project in projects:
-        projectId = project['projectId']
-        print('Creating instance.')
-        instances = list_instances(compute, projectId)
-
-        if instance_name not in instances:
-            operation = create_instance(
-                compute, projectId, zone, instance_name)
-            wait_for_operation(
-                compute, projectId, zone, operation['name'])
-
-            print('Project %s successfully deployed.' % (project['projectId']))
+        projectID = project['projectID']
+        # TODO: add function for projectID checking
+        # print('Creating instance.')
+        create_firewall(compute, projectID)
+        operation = create_instance(
+            compute, projectID, zone)
+        wait_for_operation(
+            compute, projectID, zone, operation['name'])
+        print('Project {} successfully deployed.'.format(projectID))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument(
-        '--zone',
-        default='us-central1-f',
-        help='Compute Engine zone to deploy to.')
-
-    args = parser.parse_args()
-
-    main(args.zone)
-    # main()
+    main()
 # [END run]
