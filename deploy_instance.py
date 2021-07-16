@@ -5,6 +5,7 @@ from access import authorize
 import re
 from datetime import datetime
 
+
 # region list_project
 
 
@@ -22,6 +23,7 @@ def create_firewall(compute, project):
     try:
         response = request.execute()
     except googleapiclient.errors.HttpError:
+        # TODO add status to database
         print("Firewall have error while deploying")
         return None
     else:
@@ -107,6 +109,25 @@ def get_instance_date(compute, project):
                     match.group(), '%Y-%m-%d').date()
                 return date
 # endregion get_date
+
+# region get_zone
+
+
+def get_zone(compute, project):
+    instance = "bda-db-1"
+    response = get_response(compute, project)
+    if response is None:
+        return None
+    for name, instance_scoped_list in response['items'].items():
+        info = instance_scoped_list.get("instances")
+        if info is not None:
+            name = info[0]['name']
+            if name == instance:
+                zone = info[0]['zone'].split("/")[-1]
+                return zone
+        else:
+            return None
+# endregion get_zone
 
 # region create_instance
 

@@ -1,45 +1,47 @@
-from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
-from deploy_instance import list_instances
+import os
+# from deploy_instance import get_instance_date, get_response
+# from access import authorize
+# from datetime import date
+
+# # Uncomment to use Application Default Credentials (ADC)
+# compute, service = authorize()
 
 
-# Uncomment to use Application Default Credentials (ADC)
-credentials = GoogleCredentials.get_application_default()
-service = discovery.build('compute', 'v1', credentials=credentials)
+# # service = discovery.build('cloudresourcemanager',
+# #                           'v1', credentials=credentials)
+
+# # request = service.projects().list()
 
 
-# service = discovery.build('cloudresourcemanager',
-#                           'v1', credentials=credentials)
+# # response = request.execute()
 
-# request = service.projects().list()
+# # for project in response.get('projects', []):
+# #     projectId = project['projectId']
+# #     print(projectId + "   {}".format(len(projectId)))
 
+# # compute = discovery.build('compute', 'v1')
 
-# response = request.execute()
+# # instances = list_instances(compute, 'bda-210009173')
+# # for instance in instances:
+# #     print(instance)
+# project = 'bda-218333997'
 
-# for project in response.get('projects', []):
-#     projectId = project['projectId']
-#     print(projectId + "   {}".format(len(projectId)))
+# # response = get_response(compute, project)
+# # for name, instance_scoped_list in response['items'].items():
+# #     info = instance_scoped_list.get("instances")
+# #     if info is not None:
+# #         print(info[0]['zone'].split("/")[-1])
 
-# compute = discovery.build('compute', 'v1')
+# today = date.today()
+# print(today)
 
-# instances = list_instances(compute, 'bda-210009173')
-# for instance in instances:
-#     print(instance)
-project = 'bda-219073451'
-request = service.instances().aggregatedList(project=project)
+# # item - string - instances - name
 
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-response = request.execute()
-instance_list = []
-instance_name = "bda-db-1"
-for name in response['items'].items():
-    # TODO: Change code below to process each (name, instances_scoped_list) item:
-    item = name[1].get("instances")
-    if item is not None:
-        instance_list.append(item[0]['name'])
+with open(os.path.join(__location__, 'text.txt'), 'r') as f:
+    s = f.read()
+    print(s[1])
 
-if instance_name in instance_list:
-    print("True")
-
-
-# item - string - instances - name
+f.close()
