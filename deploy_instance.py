@@ -5,6 +5,10 @@ from access import authorize
 import re
 from datetime import datetime
 
+USE_DATABASE = True
+
+if USE_DATABASE:
+    import database
 
 # region list_project
 
@@ -53,6 +57,23 @@ def create_firewall(compute, project):
         else:
             print("Firewall successfully deployed")
 # endregion create_firewall
+
+# region get_date
+
+
+def get_date(compute, project):
+    instance = "bda-db-1"
+    response = get_response(compute, project)
+    for name, instance_scoped_list in response['items'].items():
+        info = instance_scoped_list.get("instances")
+        if info is None:
+            continue
+        instance_name = info[0].get("name")
+        if instance_name == instance:
+            time = info[0].get("creationTimestamp")
+            match = re.search(r'\d{4}-\d{2}-\d{2}', time)
+            date = datetime.strptime(match.group(), '%Y-%m-%d').date()
+            return date
 
 
 # region choose_zone
@@ -105,7 +126,7 @@ def get_instance_date(compute, project):
             if name == instance:
                 date = info[0]["creationTimestamp"]
                 match = re.search(r'\d{4}-\d{2}-\d{2}', date)
-                date = datetime.strptime(
+                date = datetime.strftime(
                     match.group(), '%Y-%m-%d').date()
                 return date
 # endregion get_date
@@ -145,6 +166,8 @@ def create_instance(compute, project, zone):
             name = instance[0]['name']
             if instance_name == name:
                 instance_exist = True
+    else:
+        return None
 
     if not instance_exist:
         # Configure the machine
@@ -178,7 +201,7 @@ def create_instance(compute, project, zone):
             zone=zone,
             body=config).execute()
     else:
-        return None
+        return True
 # endregion create_instance
 
 # region wait_for_operation
@@ -208,19 +231,35 @@ def main(wait=True):
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
         project_id = project['project_id']
-        if namevalid(project_id):
-            firewall = create_firewall(compute, project_id)
-            if firewall is None:
-                # TODO Deal with error from create firewall
-                continue
-            operation = create_instance(
-                compute, project_id, zone)
-            if operation is None:
-                # TODO deal with error from deploy_instance
-                continue
-            wait_for_operation(
-                compute, project_id, zone, operation['name'])
-            print('Project {} successfully deployed.'.format(project_id))
+        changelog = ""
+        if not namevalid(project_id):
+            continue
+        firewall = create_firewall(compute, project_id)
+        if firewall is None:
+            # TODO Deal with error from create firewall
+            if USE_DATABASE:
+                changelog = "Deploy Firewall...Failed\n\nDeploy Virtual Machine...Failed"
+                database.add(
+                    project_id, project_id[4:], 0, None, None, changelog)
+            continue
+        if USE_DATABASE:
+            changelog += "Deploy Firewall...Success\n\n"
+        operation = create_instance(
+            compute, project_id, zone)
+        if operation is None:
+            # TODO deal with error from deploy_instance
+            if USE_DATABASE:
+                changelog += "Deploy Virtual Machine...Failed"
+                database.add(
+                    project_id, project_id[4:], 0, None, None, changelog)
+            continue
+        wait_for_operation(
+            compute, project_id, zone, operation['name'])
+        if USE_DATABASE:
+            date = get_date(compute, project_id)
+            changelog += "Deploy Virtual Machine...Success"
+            database.add(project_id, project_id[4:], 1, zone, date, changelog)
+        print('Project {} successfully deployed.'.format(project_id))
 
 
 if __name__ == '__main__':
