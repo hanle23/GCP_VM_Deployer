@@ -5,7 +5,7 @@ from access import authorize
 import re
 from datetime import datetime
 
-USE_DATABASE = True
+USE_DATABASE = False
 
 if USE_DATABASE:
     import database
@@ -54,8 +54,12 @@ def create_firewall(compute, project):
                 body=config).execute()
         except googleapiclient.errors.HttpError:
             print("Firewall have error while deploying")
+            return None
         else:
             print("Firewall successfully deployed")
+            return True
+    else:
+        return True
 # endregion create_firewall
 
 # region get_date
@@ -77,10 +81,9 @@ def get_date(compute, project):
 
 
 # region choose_zone
-def choose_zone(compute):
+def choose_zone(compute, region="us-east"):
     # TODO: Using bulk instance API
     project_id = "img-store"
-    region = "us-east"
     request = compute.zones().list(project=project_id)
     if request is not None:
         response = request.execute()
@@ -105,8 +108,8 @@ def get_response(compute, project):
 # region namevalid
 
 
-def namevalid(project_id):
-    if not project_id.startswith("bda-"):
+def namevalid(project_id, name="bda-"):
+    if not project_id.startswith(name):
         return False
     return True
 # endregion namevalid
@@ -193,35 +196,49 @@ def create_instance(compute, project, zone):
             ],
 
             'networkInterfaces': [{
-                'network': 'global/networks/default'
+                'network': 'global/networks/default',
+                'accessConfigs': [
+                    {
+                        "type": "ONE_TO_ONE_NAT",
+                        "name": "External NAT",
+                        "networkTier": "PREMIUM"
+                    }
+                ]
             }]
         }
-        return compute.instances().insert(
-            project=project,
-            zone=zone,
-            body=config).execute()
+        try:
+            compute.instances().insert(
+                project=project,
+                zone=zone,
+                body=config).execute()
+        except googleapiclient.errors.HttpError:
+            return None
+        else:
+            return True
     else:
         return True
 # endregion create_instance
 
-# region wait_for_operation
+# region delete_instance
 
 
-def wait_for_operation(compute, project, zone, operation):
-    while True:
-        result = compute.zoneOperations().get(
-            project=project,
-            zone=zone,
-            operation=operation).execute()
+def delete_instance(compute, project, zone):
+    name = "dba-db-1"  # name can be change if not default
+    return compute.instances().delete(
+        project=project,
+        zone=zone,
+        instance=name).execute()
+# endregion delete_instance
 
-        if result['status'] == 'DONE':
-            if 'error' in result:
-                raise result['error']
-            return result
-# endregion wait_for_operation
+# region delete_firewall
 
 
-# [START run]
+def delete_firewall(compute, project, firewall="sql-mon"):
+    return compute.firewalls().delete(
+        project=project,
+        firewall=firewall).execute()
+
+# region main
 
 
 def main(wait=True):
@@ -230,38 +247,18 @@ def main(wait=True):
     zone = choose_zone(compute)
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
-        project_id = project['project_id']
-        changelog = ""
+        project_id = project['projectId']
         if not namevalid(project_id):
             continue
         firewall = create_firewall(compute, project_id)
         if firewall is None:
-            # TODO Deal with error from create firewall
-            if USE_DATABASE:
-                changelog = "Deploy Firewall...Failed\n\nDeploy Virtual Machine...Failed"
-                database.add(
-                    project_id, project_id[4:], 0, None, None, changelog)
             continue
-        if USE_DATABASE:
-            changelog += "Deploy Firewall...Success\n\n"
-        operation = create_instance(
-            compute, project_id, zone)
+        operation = create_instance(compute, project_id, zone)
         if operation is None:
-            # TODO deal with error from deploy_instance
-            if USE_DATABASE:
-                changelog += "Deploy Virtual Machine...Failed"
-                database.add(
-                    project_id, project_id[4:], 0, None, None, changelog)
             continue
-        wait_for_operation(
-            compute, project_id, zone, operation['name'])
-        if USE_DATABASE:
-            date = get_date(compute, project_id)
-            changelog += "Deploy Virtual Machine...Success"
-            database.add(project_id, project_id[4:], 1, zone, date, changelog)
         print('Project {} successfully deployed.'.format(project_id))
 
 
 if __name__ == '__main__':
     main()
-# [END run]
+# endregion main
