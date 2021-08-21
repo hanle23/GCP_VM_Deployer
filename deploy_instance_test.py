@@ -27,7 +27,8 @@ class DeployTestCase(unittest.TestCase):
         projects = ["testing-project-322415", "testing-project-322416"]
         for project in projects:
             operation = create_instance(compute, project, zone)
-            self.assertTrue(operation)
+            names = get_instance_names(compute, project)
+            self.assertIn("bda-db-1", names)
             delete_instance(compute, project, zone)
 
 

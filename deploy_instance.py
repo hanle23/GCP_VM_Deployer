@@ -68,13 +68,11 @@ def create_firewall(compute, project):
 def get_date(compute, project):
     instance = "bda-db-1"
     response = get_response(compute, project)
-    for name, instance_scoped_list in response['items'].items():
-        info = instance_scoped_list.get("instances")
-        if info is None:
-            continue
-        instance_name = info[0].get("name")
+    instances = get_instances(compute, project)
+    for instance in instances:
+        instance_name = instance[0].get("name")
         if instance_name == instance:
-            time = info[0].get("creationTimestamp")
+            time = instance[0].get("creationTimestamp")
             match = re.search(r'\d{4}-\d{2}-\d{2}', time)
             date = datetime.strptime(match.group(), '%Y-%m-%d').date()
             return date
@@ -90,6 +88,22 @@ def choose_zone(compute, region="us-east"):
         for zone in response['items']:
             return zone['name'] if zone['name'].startswith(region) and zone['status'] == 'UP' else None
 # endregion choose_zone
+
+# region get_instances
+
+
+def get_instances(compute, project):
+    instances = []
+    response = get_response(compute, project)
+    for _, instance_scoped_list in response['items'].items():
+        instance = instance_scoped_list.get("instances")
+        if instance is None:
+            continue
+        instances.append(instance)
+    if len(instances) == 0:
+        return None
+    return instances
+# endregion get_instances
 
 # region get_response
 
@@ -114,44 +128,34 @@ def namevalid(project_id, name="bda-"):
     return True
 # endregion namevalid
 
-# region get_date
-
-
-def get_instance_date(compute, project):
-    instance = "bda-db-1"
-    response = get_response(compute, project)
-    if response is None:
-        return None
-    for name, instance_scoped_list in response['items'].items():
-        info = instance_scoped_list.get("instances")
-        if info is not None:
-            name = info[0]['name']
-            if name == instance:
-                date = info[0]["creationTimestamp"]
-                match = re.search(r'\d{4}-\d{2}-\d{2}', date)
-                date = datetime.strftime(
-                    match.group(), '%Y-%m-%d').date()
-                return date
-# endregion get_date
-
 # region get_zone
 
 
 def get_zone(compute, project):
     instance = "bda-db-1"
     response = get_response(compute, project)
-    if response is None:
-        return None
-    for name, instance_scoped_list in response['items'].items():
-        info = instance_scoped_list.get("instances")
-        if info is not None:
-            name = info[0]['name']
-            if name == instance:
-                zone = info[0]['zone'].split("/")[-1]
-                return zone
-        else:
-            return None
+    instances = get_instances(compute, project)
+    for instance in instances:
+        name = instance[0]['name']
+        if name == instance:
+            zone = instance[0]['zone'].split("/")[-1]
+            return zone
+
 # endregion get_zone
+
+# region get_instance_name
+
+
+def get_instance_names(compute, project):
+    instance_names = []
+    instances = get_instances(compute, project)
+    if instances is None:
+        return None
+    for instance in instances:
+        name = instance[0]['name']
+        instance_names.append(name)
+    return instance_names
+# endregion get_name
 
 # region create_instance
 
@@ -159,18 +163,10 @@ def get_zone(compute, project):
 def create_instance(compute, project, zone):
     instance_name = "bda-db-1"
     instance_exist = False
-    # Check instances in project
-    response = get_response(compute, project)
-    if response is not None:
-        for name, instance_scoped_list in response['items'].items():
-            instance = instance_scoped_list.get("instances")
-            if instance is None:
-                continue
-            name = instance[0]['name']
-            if instance_name == name:
-                instance_exist = True
-    else:
-        return None
+    instance_names = get_instance_names(compute, project)
+    if instance_names is not None:
+        if instance_name in instance_names:
+            instance_exist = True
 
     if not instance_exist:
         # Configure the machine
@@ -223,7 +219,7 @@ def create_instance(compute, project, zone):
 
 
 def delete_instance(compute, project, zone):
-    name = "dba-db-1"  # name can be change if not default
+    name = "bda-db-1"  # name can be change if not default
     return compute.instances().delete(
         project=project,
         zone=zone,
