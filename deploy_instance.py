@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-
-import googleapiclient.errors
-from access import authorize
-import re
 from datetime import datetime
+import re
+from access import authorize
+import googleapiclient.errors
+
 
 USE_DATABASE = False
 
@@ -28,7 +27,6 @@ def create_firewall(compute, project):
         response = request.execute()
     except googleapiclient.errors.HttpError:
         # TODO add status to database
-        print("Firewall have error while deploying")
         return None
     else:
         for firewall in response['items']:
@@ -53,10 +51,8 @@ def create_firewall(compute, project):
                 project=project,
                 body=config).execute()
         except googleapiclient.errors.HttpError:
-            print("Firewall have error while deploying")
             return None
         else:
-            print("Firewall successfully deployed")
             return True
     else:
         return True
@@ -212,7 +208,7 @@ def create_instance(compute, project, zone):
         else:
             return True
     else:
-        return True
+        return None
 # endregion create_instance
 
 # region delete_instance
