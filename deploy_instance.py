@@ -234,6 +234,7 @@ def delete_firewall(compute, project, firewall="sql-mon"):
 
 
 def main(wait=True):
+    print("Application starting")
     compute, service = authorize()
     projects = list_projects(service)
     zone = choose_zone(compute)
