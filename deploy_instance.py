@@ -2,12 +2,16 @@ from datetime import datetime
 import re
 from access import authorize
 import googleapiclient.errors
+import student_data as data
+import time
 
 
 USE_DATABASE = False
+USE_TIMER = True
 
 if USE_DATABASE:
     import database
+
 
 # region list_project
 
@@ -235,13 +239,17 @@ def delete_firewall(compute, project, firewall="sql-mon"):
 
 def main(wait=True):
     print("Application starting")
+    start = time.process_time()
     compute, service = authorize()
     projects = list_projects(service)
+    student_list = data.get_student_id_txt("student_list.txt")
     zone = choose_zone(compute)
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
         project_id = project['projectId']
         if not namevalid(project_id):
+            continue
+        if project_id not in student_list:
             continue
         firewall = create_firewall(compute, project_id)
         if firewall is None:
@@ -250,6 +258,9 @@ def main(wait=True):
         if operation is None:
             continue
         print('Project {} successfully deployed.'.format(project_id))
+    time_result = time.process_time() - start
+    if USE_TIMER:
+        print("The total time taken is: {} ms".format(time_result))
 
 
 if __name__ == '__main__':
