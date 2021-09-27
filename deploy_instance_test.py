@@ -1,6 +1,7 @@
 import access
 import unittest
 from deploy_instance import *
+import student_data as data
 import os
 
 compute, service = access.authorize()
@@ -22,11 +23,16 @@ class DeployTestCase(unittest.TestCase):
         name = "bda-123456789"
         self.assertTrue(namevalid(name))
 
+    def test_get_student_txt(self):
+        student_list = data.get_student_id_txt("test_file.txt")
+        self.assertTrue(student_list)
+        self.assertIsNotNone(student_list)
+
     def test_create_instance(self):
         zone = choose_zone(compute)
         projects = ["testing-project-322415", "testing-project-322416"]
         for project in projects:
-            operation = create_instance(compute, project, zone)
+            create_instance(compute, project, zone)
             names = get_instance_names(compute, project)
             self.assertIn("bda-db-1", names)
             delete_instance(compute, project, zone)

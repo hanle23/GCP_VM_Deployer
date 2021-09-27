@@ -243,6 +243,9 @@ def main(wait=True):
     compute, service = authorize()
     projects = list_projects(service)
     student_list = data.get_student_id_txt("student_list.txt")
+    if not student_list:
+        print("Data has error while opening, application will be close now")
+        exit()
     zone = choose_zone(compute)
     assert zone != None, "No zone start with us-east is up"
     for project in projects:

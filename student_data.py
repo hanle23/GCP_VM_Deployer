@@ -19,6 +19,17 @@ def get_students_id():
 
 
 def get_student_id_txt(file_name):
+    student_list = []
     path = os.path.dirname(os.path.realpath(__file__))
-    file = open(path + "\\" + file_name)
-    return file.read().split()
+    full_path = path + "\\" + file_name
+    if os.path.isfile(full_path):
+        try:
+            open_file = open(full_path)
+        except IOError:
+            return False
+        else:
+            student_list = open_file.read().split()
+            open_file.close()
+            return student_list
+    else:
+        return False
