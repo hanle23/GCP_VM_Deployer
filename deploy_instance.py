@@ -7,7 +7,7 @@ import time
 
 
 USE_DATABASE = False
-USE_TIMER = True
+USE_TIMER = False
 
 if USE_DATABASE:
     import database
@@ -261,6 +261,7 @@ def main(wait=True):
         if operation is None:
             continue
         print('Project {} successfully deployed.'.format(project_id))
+    print("Successfully complete application")
     time_result = time.process_time() - start
     if USE_TIMER:
         print("The total time taken is: {} ms".format(time_result))
