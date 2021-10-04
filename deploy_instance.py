@@ -1,9 +1,12 @@
 from datetime import datetime
 import re
+
+from googleapiclient import discovery
 from access import authorize
 import googleapiclient.errors
 import student_data as data
 import time
+from typing import Union
 
 
 USE_DATABASE = False
@@ -16,14 +19,14 @@ if USE_DATABASE:
 # region list_project
 
 
-def list_projects(service):
+def list_projects(service: discovery.Resource) -> list:
     result = service.projects().list().execute()
     return result.get('projects', [])
 # endregion list_project
 
 
 # region create_firewall
-def create_firewall(compute, project):
+def create_firewall(compute: discovery.Resource, project) -> Union[bool, None]:
     firewall_exist = False
     firewall_rule = "sql-mon"
     request = compute.firewalls().list(project=project)
@@ -65,21 +68,20 @@ def create_firewall(compute, project):
 # region get_date
 
 
-def get_date(compute, project):
+def get_date(compute: discovery.Resource, project: str) -> datetime.date:
     instance = "bda-db-1"
-    response = get_response(compute, project)
     instances = get_instances(compute, project)
-    for instance in instances:
-        instance_name = instance[0].get("name")
+    for project_instance in instances:
+        instance_name = project_instance[0].get("name")
         if instance_name == instance:
-            time = instance[0].get("creationTimestamp")
+            time = project_instance[0].get("creationTimestamp")
             match = re.search(r'\d{4}-\d{2}-\d{2}', time)
             date = datetime.strptime(match.group(), '%Y-%m-%d').date()
             return date
 
 
 # region choose_zone
-def choose_zone(compute, region="us-east"):
+def choose_zone(compute: discovery.Resource, region: str = "us-east") -> str:
     # TODO: Using bulk instance API
     project_id = "img-store"
     request = compute.zones().list(project=project_id)
@@ -92,7 +94,7 @@ def choose_zone(compute, region="us-east"):
 # region get_instances
 
 
-def get_instances(compute, project):
+def get_instances(compute: discovery.Resource, project: str) -> Union[list, None]:
     instances = []
     response = get_response(compute, project)
     for _, instance_scoped_list in response['items'].items():
@@ -108,7 +110,7 @@ def get_instances(compute, project):
 # region get_response
 
 
-def get_response(compute, project):
+def get_response(compute: discovery.Resource, project: str):
     request = compute.instances().aggregatedList(project=project)
     try:
         response = request.execute()
@@ -122,7 +124,7 @@ def get_response(compute, project):
 # region namevalid
 
 
-def namevalid(project_id, name="bda-"):
+def namevalid(project_id: str, name: str = "bda-") -> bool:
     if not project_id.startswith(name):
         return False
     return True
@@ -131,14 +133,13 @@ def namevalid(project_id, name="bda-"):
 # region get_zone
 
 
-def get_zone(compute, project):
+def get_zone(compute: discovery.Resource, project: str) -> str:
     instance = "bda-db-1"
-    response = get_response(compute, project)
     instances = get_instances(compute, project)
-    for instance in instances:
-        name = instance[0]['name']
+    for current_instance in instances:
+        name = current_instance[0]['name']
         if name == instance:
-            zone = instance[0]['zone'].split("/")[-1]
+            zone = current_instance[0]['zone'].split("/")[-1]
             return zone
 
 # endregion get_zone
@@ -146,7 +147,7 @@ def get_zone(compute, project):
 # region get_instance_name
 
 
-def get_instance_names(compute, project):
+def get_instance_names(compute: discovery.Resource, project: str) -> Union[None, list]:
     instance_names = []
     instances = get_instances(compute, project)
     if instances is None:
@@ -160,13 +161,12 @@ def get_instance_names(compute, project):
 # region create_instance
 
 
-def create_instance(compute, project, zone):
+def create_instance(compute: discovery.Resource, project: str, zone: str) -> Union[bool, None]:
     instance_name = "bda-db-1"
     instance_exist = False
     instance_names = get_instance_names(compute, project)
-    if instance_names is not None:
-        if instance_name in instance_names:
-            instance_exist = True
+    if instance_names is not None and instance_name in instance_names:
+        instance_exist = True
 
     if not instance_exist:
         # Configure the machine
@@ -218,7 +218,7 @@ def create_instance(compute, project, zone):
 # region delete_instance
 
 
-def delete_instance(compute, project, zone):
+def delete_instance(compute: discovery.Resource, project: str, zone: str) -> None:
     name = "bda-db-1"  # name can be change if not default
     return compute.instances().delete(
         project=project,
@@ -229,7 +229,7 @@ def delete_instance(compute, project, zone):
 # region delete_firewall
 
 
-def delete_firewall(compute, project, firewall="sql-mon"):
+def delete_firewall(compute: discovery.Resource, project: str, firewall: str = "sql-mon") -> None:
     return compute.firewalls().delete(
         project=project,
         firewall=firewall).execute()

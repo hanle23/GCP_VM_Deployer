@@ -6,7 +6,7 @@ credentials = GoogleCredentials.get_application_default()
 # region authorize_compute
 
 
-def authorize():
+def authorize() -> discovery.Resource:
     compute = discovery.build(
         'compute', 'v1', credentials=credentials)
     service = discovery.build('cloudresourcemanager',

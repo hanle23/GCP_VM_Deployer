@@ -1,9 +1,10 @@
-import mysql.connector
+from datetime import datetime
+import mysql
 from mysql.connector import errorcode
 import databaseconfig as cfg
 
 
-def connect():
+def connect() -> object:
     try:
         database = mysql.connector.connect(
             host=cfg.mysql["host"], user=cfg.mysql["user"], password=cfg.mysql["password"], database=cfg.mysql["database"])
@@ -18,7 +19,7 @@ def connect():
         return database
 
 
-def add(project_id, student_id, deploy_status, zone_id, creation_time, changelog):
+def add(project_id: str, student_id: str, deploy_status: bool, zone_id: str, creation_time: datetime.date, changelog: str) -> None:
     connection = connect()
     my_cursor = connection.cursor()
     if not exist(project_id):
@@ -34,7 +35,7 @@ def add(project_id, student_id, deploy_status, zone_id, creation_time, changelog
         connection.commit()
 
 
-def exist(project_id):
+def exist(project_id: str) -> bool:
     connection = connect()
     my_cursor = connection.cursor()
     check_username = my_cursor.execute(
@@ -45,5 +46,5 @@ def exist(project_id):
         return True
 
 
-def close(database):
+def close(database) -> None:
     return database.close()

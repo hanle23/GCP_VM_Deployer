@@ -1,16 +1,17 @@
+from typing import Union
 import requests
 import json
 import os
 url = ""
 
 
-def get_student_list():
+def get_student_list() -> json:
     response_API = requests.get(url)
     assert response_API.status_code == 200, "No response from URL"
     return response_API.json()
 
 
-def get_students_id():
+def get_students_id() -> json:
     students_id = []
     student_list = get_student_list()
     for student in student_list:
@@ -18,7 +19,7 @@ def get_students_id():
     return students_id
 
 
-def get_student_id_txt(file_name):
+def get_student_id_txt(file_name: str) -> Union[bool, list]:
     student_list = []
     path = os.path.dirname(os.path.realpath(__file__))
     full_path = path + "\\" + file_name
