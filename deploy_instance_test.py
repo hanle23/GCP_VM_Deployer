@@ -2,7 +2,7 @@ import access
 import unittest
 from deploy_instance import *
 import student_data as data
-import os
+
 
 compute, service = access.authorize()
 assert compute != None

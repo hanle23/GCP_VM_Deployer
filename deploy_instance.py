@@ -1,136 +1,73 @@
-from datetime import datetime
-import re
-
 from googleapiclient import discovery
 from access import authorize
 import googleapiclient.errors
-import student_data as data
+import student_data as dataSource
 import time
-from typing import Union
 
-
+# Parameter for usage of USE_DATABASE and USE_TIMER
 USE_DATABASE = False
-USE_TIMER = False
+USE_TIMER = True
 
-if USE_DATABASE:
-    import database
-
-
-# region list_project
+# Uncomment after config databases to store deployment status
+# if USE_DATABASE:
+#     import database
 
 
 def list_projects(service: discovery.Resource) -> list:
+    # Return a list of project associate with Default account as "Editor"
     result = service.projects().list().execute()
     return result.get('projects', [])
-# endregion list_project
 
 
-# region create_firewall
-def create_firewall(compute: discovery.Resource, project) -> Union[bool, None]:
-    firewall_exist = False
-    firewall_rule = "sql-mon"
-    request = compute.firewalls().list(project=project)
+def create_firewall(compute: discovery.Resource, project: str, firewall_rule: str = "sql-mon") -> bool:
     try:
-        response = request.execute()
+        config = {
+            "name": "sql-mon",
+            "priority": 10000,
+            "network": "global/networks/default",
+            "allowed": [{
+                "IPProtocol": "tcp",
+            }],
+            "sourceRanges": [
+                "130.63.0.0/16"
+            ],
+        }
+        compute.firewalls().insert(
+            project=project,
+            body=config).execute()
     except googleapiclient.errors.HttpError:
-        # TODO add status to database
-        return None
-    else:
-        for firewall in response['items']:
-            name = firewall.get("name")
-            if firewall_rule == name:
-                firewall_exist = True
-
-    if not firewall_exist:
-        try:
-            config = {
-                "name": "sql-mon",
-                "priority": 10000,
-                "network": "global/networks/default",
-                "allowed": [{
-                    "IPProtocol": "tcp",
-                }],
-                "sourceRanges": [
-                    "130.63.0.0/16"
-                ],
-            }
-            compute.firewalls().insert(
-                project=project,
-                body=config).execute()
-        except googleapiclient.errors.HttpError:
-            return None
-        else:
-            return True
+        return False
     else:
         return True
-# endregion create_firewall
-
-# region get_date
 
 
-def get_date(compute: discovery.Resource, project: str) -> datetime.date:
-    instance = "bda-db-1"
-    instances = get_instances(compute, project)
-    for project_instance in instances:
-        instance_name = project_instance[0].get("name")
-        if instance_name == instance:
-            time = project_instance[0].get("creationTimestamp")
-            match = re.search(r'\d{4}-\d{2}-\d{2}', time)
-            date = datetime.strptime(match.group(), '%Y-%m-%d').date()
-            return date
-
-
-# region choose_zone
-def choose_zone(compute: discovery.Resource, region: str = "us-east") -> str:
-    # TODO: Using bulk instance API
-    project_id = "img-store"
+def choose_zone(compute: discovery.Resource, region: str = "us-east", project_id: str = "img-store") -> str:
     request = compute.zones().list(project=project_id)
     if request is not None:
         response = request.execute()
         for zone in response['items']:
             return zone['name'] if zone['name'].startswith(region) and zone['status'] == 'UP' else None
-# endregion choose_zone
-
-# region get_instances
 
 
-def get_instances(compute: discovery.Resource, project: str) -> Union[list, None]:
+def get_instances(compute: discovery.Resource, project: str) -> list:
     instances = []
-    response = get_response(compute, project)
-    for _, instance_scoped_list in response['items'].items():
-        instance = instance_scoped_list.get("instances")
-        if instance is None:
-            continue
-        instances.append(instance)
-    if len(instances) == 0:
-        return None
-    return instances
-# endregion get_instances
-
-# region get_response
-
-
-def get_response(compute: discovery.Resource, project: str):
-    request = compute.instances().aggregatedList(project=project)
     try:
-        response = request.execute()
+        response = compute.instances().aggregatedList(project=project).execute()
     except googleapiclient.errors.HttpError:
-        print("Project {} is not enabled API".format(project))
-        return None
+        return instances
     else:
-        return response
-# endregion get_response
-
-# region namevalid
+        for _, instance_scoped_list in response['items'].items():
+            instance = instance_scoped_list.get("instances")
+            if instance is None:
+                continue
+            instances.append(instance)
+        return instances
 
 
 def namevalid(project_id: str, name: str = "bda-") -> bool:
     if not project_id.startswith(name):
         return False
     return True
-# endregion namevalid
-
-# region get_zone
 
 
 def get_zone(compute: discovery.Resource, project: str) -> str:
@@ -142,91 +79,53 @@ def get_zone(compute: discovery.Resource, project: str) -> str:
             zone = current_instance[0]['zone'].split("/")[-1]
             return zone
 
-# endregion get_zone
 
-# region get_instance_name
+def create_instance(compute: discovery.Resource, project: str, zone: str, instance_name: str = "bda-db-1") -> bool:
+    machine_type = "zones/{}/machineTypes/n1-standard-1".format(zone)
+    image = "projects/img-store/global/images/deb-sql-mongo-template-1-image-4"
+    diskType = "projects/{project}/zones/{zone}/diskTypes/pd-ssd".format(
+        project=project, zone=zone)
 
-
-def get_instance_names(compute: discovery.Resource, project: str) -> Union[None, list]:
-    instance_names = []
-    instances = get_instances(compute, project)
-    if instances is None:
-        return None
-    for instance in instances:
-        name = instance[0]['name']
-        instance_names.append(name)
-    return instance_names
-# endregion get_name
-
-# region create_instance
-
-
-def create_instance(compute: discovery.Resource, project: str, zone: str) -> Union[bool, None]:
-    instance_name = "bda-db-1"
-    instance_exist = False
-    instance_names = get_instance_names(compute, project)
-    if instance_names is not None and instance_name in instance_names:
-        instance_exist = True
-
-    if not instance_exist:
-        # Configure the machine
-        machine_type = "zones/{}/machineTypes/n1-standard-1".format(zone)
-        image = "projects/img-store/global/images/deb-sql-mongo-template-1-image-4"
-        diskType = "projects/{project}/zones/{zone}/diskTypes/pd-ssd".format(
-            project=project, zone=zone)
-
-        config = {
-            'name': instance_name,
-            'machineType': machine_type,
-
-            # Specify the boot disk and the image to use as a source.
-            'disks': [
-                {
-                    'boot': True,
-                    'autoDelete': True,
-                    'initializeParams': {
-                        'diskType': diskType,
-                        'sourceImage': image,
-                    }
+    config = {
+        'name': instance_name,
+        'machineType': machine_type,
+        'disks': [
+            {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams': {
+                    'diskType': diskType,
+                    'sourceImage': image,
                 }
-            ],
-
-            'networkInterfaces': [{
-                'network': 'global/networks/default',
-                'accessConfigs': [
-                    {
-                        "type": "ONE_TO_ONE_NAT",
-                        "name": "External NAT",
-                        "networkTier": "PREMIUM"
-                    }
-                ]
-            }]
-        }
-        try:
-            compute.instances().insert(
-                project=project,
-                zone=zone,
-                body=config).execute()
-        except googleapiclient.errors.HttpError:
-            return None
-        else:
-            return True
+            }
+        ],
+        'networkInterfaces': [{
+            'network': 'global/networks/default',
+            'accessConfigs': [
+                {
+                    "type": "ONE_TO_ONE_NAT",
+                    "name": "External NAT",
+                    "networkTier": "PREMIUM"
+                }
+            ]
+        }]
+    }
+    try:
+        compute.instances().insert(
+            project=project,
+            zone=zone,
+            body=config).execute()
+    except googleapiclient.errors.HttpError:
+        return False  # Currently using False as a place holder, expect retrieving error as String for database update
     else:
-        return None
-# endregion create_instance
-
-# region delete_instance
+        return True
 
 
-def delete_instance(compute: discovery.Resource, project: str, zone: str) -> None:
-    name = "bda-db-1"  # name can be change if not default
+def delete_instance(compute: discovery.Resource, project: str, zone: str, name: str = "bda-db-1") -> None:
     return compute.instances().delete(
         project=project,
         zone=zone,
         instance=name).execute()
-# endregion delete_instance
-
-# region delete_firewall
 
 
 def delete_firewall(compute: discovery.Resource, project: str, firewall: str = "sql-mon") -> None:
@@ -234,15 +133,13 @@ def delete_firewall(compute: discovery.Resource, project: str, firewall: str = "
         project=project,
         firewall=firewall).execute()
 
-# region main
-
 
 def main(wait=True):
     print("Application starting")
     start = time.process_time()
     compute, service = authorize()
     projects = list_projects(service)
-    student_list = data.get_student_id_txt("student_list.txt")
+    student_list = dataSource.get_student_id_txt("student_list.txt")
     if not student_list:
         print("Data has error while opening, application will be close now")
         exit()
@@ -255,10 +152,10 @@ def main(wait=True):
         if project_id not in student_list:
             continue
         firewall = create_firewall(compute, project_id)
-        if firewall is None:
+        if not firewall:
             continue
         operation = create_instance(compute, project_id, zone)
-        if operation is None:
+        if not operation:
             continue
         print('Project {} successfully deployed.'.format(project_id))
     print("Successfully complete application")
@@ -269,4 +166,3 @@ def main(wait=True):
 
 if __name__ == '__main__':
     main()
-# endregion main
