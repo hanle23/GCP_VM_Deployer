@@ -4,6 +4,7 @@ import googleapiclient.errors
 import student_data as dataSource
 import time
 
+
 # Parameter for usage of USE_DATABASE and USE_TIMER
 USE_DATABASE = False
 USE_TIMER = True
@@ -41,6 +42,7 @@ def create_firewall(compute: discovery.Resource, project: str, firewall_rule: st
         return True
 
 
+# Choose a stable deployed project to check for available zone
 def choose_zone(compute: discovery.Resource, region: str = "us-east", project_id: str = "img-store") -> str:
     request = compute.zones().list(project=project_id)
     if request is not None:
@@ -78,6 +80,17 @@ def get_zone(compute: discovery.Resource, project: str) -> str:
         if name == instance:
             zone = current_instance[0]['zone'].split("/")[-1]
             return zone
+
+
+def get_instance_names(compute: discovery.Resource, project: str) -> list:
+    instance_names = []
+    instances = get_instances(compute, project)
+    if instances is None:
+        return instance_names
+    for instance in instances:
+        name = instance[0]['name']
+        instance_names.append(name)
+    return instance_names
 
 
 def create_instance(compute: discovery.Resource, project: str, zone: str, instance_name: str = "bda-db-1") -> bool:
