@@ -1,7 +1,7 @@
 from googleapiclient import discovery
-from access import authorize
+from deployable.access import authorize
 import googleapiclient.errors
-import student_data as dataSource
+import deployable.student_data as dataSource
 import time
 
 __all__ = ["list_projects",

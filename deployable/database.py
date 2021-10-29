@@ -1,6 +1,6 @@
 from datetime import datetime
-import mysql
-from mysql.connector import errorcode
+# import mysql
+# from mysql.connector import errorcode
 import databaseconfig as cfg
 
 __all__ = ["connect", "add", "exist", "close"]
