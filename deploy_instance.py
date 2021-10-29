@@ -162,7 +162,7 @@ def main(wait=True):
     compute, service = authorize()
     projects = list_projects(service)
     student_list = dataSource.get_student_id_txt("student_list.txt")
-    if not student_list:
+    if len(student_list) == 0:
         print("Data has error while opening, application will be close now")
         exit()
     zone = choose_zone(compute)

@@ -1,4 +1,3 @@
-from typing import Union
 import requests
 import json
 import os
@@ -23,7 +22,7 @@ def get_students_id() -> json:
     return students_id
 
 
-def get_student_id_txt(file_name: str) -> Union[bool, list]:
+def get_student_id_txt(file_name: str) -> list:
     student_list = []
     path = os.path.dirname(os.path.realpath(__file__))
     full_path = path + "\\" + file_name
@@ -31,10 +30,8 @@ def get_student_id_txt(file_name: str) -> Union[bool, list]:
         try:
             open_file = open(full_path)
         except IOError:
-            return False
+            return student_list
         else:
             student_list = open_file.read().split()
             open_file.close()
             return student_list
-    else:
-        return False

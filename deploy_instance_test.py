@@ -1,7 +1,6 @@
-from os import access
-from student_data import *
+from access import authorize
 from deploy_instance import *
-from access import *
+from student_data import get_student_id_txt
 import unittest
 
 compute, service = authorize()
