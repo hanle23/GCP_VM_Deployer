@@ -38,6 +38,5 @@ setuptools.setup(
     platforms="MacOS X; Windows",
     packages=packages,
     python_requires=">=3.6",
-    include_package_data=True,
     install_requires=dependencies,
 )
