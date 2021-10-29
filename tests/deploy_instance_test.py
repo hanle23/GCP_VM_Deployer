@@ -1,4 +1,4 @@
-# from GCP-Auto-Deploy.v1 import access, deploy_instance, student_data
+from deployable import access, deploy_instance, student_data
 import unittest
 
 compute, service = access.authorize()
