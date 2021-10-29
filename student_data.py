@@ -26,12 +26,7 @@ def get_student_id_txt(file_name: str) -> list:
     student_list = []
     path = os.path.dirname(os.path.realpath(__file__))
     full_path = path + "\\" + file_name
-    if os.path.isfile(full_path):
-        try:
-            open_file = open(full_path)
-        except IOError:
-            return student_list
-        else:
-            student_list = open_file.read().split()
-            open_file.close()
-            return student_list
+    open_file = open(full_path)
+    student_list = open_file.read().split()
+    open_file.close()
+    return student_list
