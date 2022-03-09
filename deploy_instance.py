@@ -290,9 +290,9 @@ def main(wait=True):
             continue
         print('Project {} successfully deployed.'.format(project_id))
     print("Successfully complete application")
-    time_result = time.process_time() - start
+    time_result = (time.process_time() - start) / 1000
     if USE_TIMER:
-        print("The total time taken is: {} ms".format(time_result))
+        print("The total time taken is: {:.6f} s".format(time_result))
 
 
 if __name__ == '__main__':
