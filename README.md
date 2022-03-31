@@ -49,7 +49,7 @@ An automation tools to help deploying Cloud instances for administration purpose
 The tools will depending on the usage and services, but currently will focus on for Google Cloud Platform
 
 ### Prerequisites
-
+- [Python](https://www.python.org/downloads/)
 - [Git](https://git-scm.com/download)
 - [Cloud SDK](https://cloud.google.com/sdk)
 - [google-api-python-client](https://github.com/googleapis/google-api-python-client)
