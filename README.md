@@ -65,9 +65,6 @@ The tools will depending on the usage and services, but currently will focus on 
    ```sh
    gcloud auth application-default login
    ```
-4. Check [Google Cloud Python API Guide](https://cloud.google.com/compute/docs/tutorials/python-guide) for a quick rundown of the API
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
 
