@@ -50,8 +50,9 @@ The tools will depending on the usage and services, but currently will focus on 
 
 ### Prerequisites
 
+- [Python](https://www.python.org/downloads/)
 - [Git](https://git-scm.com/download)
-- [Cloud SDK](https://cloud.google.com/sdk)
+- [Cloud SDK](https://cloud.google.com/sdk/docs/install)
 - [google-api-python-client](https://github.com/googleapis/google-api-python-client)
 
 ### Installation
@@ -65,9 +66,6 @@ The tools will depending on the usage and services, but currently will focus on 
    ```sh
    gcloud auth application-default login
    ```
-4. Check [Google Cloud Python API Guide](https://cloud.google.com/compute/docs/tutorials/python-guide) for a quick rundown of the API
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
 
