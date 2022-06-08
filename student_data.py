@@ -25,7 +25,7 @@ def get_students_id() -> json:
 def get_student_id_txt(file_name: str) -> list:
     student_list = []
     path = os.path.dirname(os.path.realpath(__file__))
-    full_path = path + "\\" + file_name
+    full_path = path + "/" + file_name
     open_file = open(full_path)
     student_list = open_file.read().split()
     open_file.close()

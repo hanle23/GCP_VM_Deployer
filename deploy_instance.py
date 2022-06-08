@@ -267,7 +267,7 @@ def delete_firewall(compute: discovery.Resource, project_id: str, firewall: str 
 
 def main(wait=True):
     print("Application starting")
-    start = time.process_time()
+    start = time.time()
     compute, service = authorize()
     projects = list_projects(service)
     student_list = dataSource.get_student_id_txt("student_list.txt")
@@ -290,9 +290,9 @@ def main(wait=True):
             continue
         print('Project {} successfully deployed.'.format(project_id))
     print("Successfully complete application")
-    time_result = (time.process_time() - start) / 1000
+    time_result = time.time() - start
     if USE_TIMER:
-        print("The total time taken is: {:.6f} s".format(time_result))
+        print("The total time taken is: {:.2f} s".format(time_result))
 
 
 if __name__ == '__main__':
