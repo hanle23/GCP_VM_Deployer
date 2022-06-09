@@ -1,6 +1,6 @@
-from deployable.access import authorize
-from deployable.deploy_instance import *
-from deployable.student_data import get_student_id_txt
+from Deployable.dp.access import authorize
+from Deployable.dp.deploy_instance import *
+from Deployable.dp.student_data import get_student_id_txt
 import unittest
 
 compute, service = authorize()
