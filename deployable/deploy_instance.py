@@ -1,7 +1,7 @@
 from googleapiclient import discovery
-from deployable.access import authorize
+from .access import authorize
 import googleapiclient.errors
-import deployable.student_data as dataSource
+from .local_data import get_student_id_txt as dataSource
 import time
 
 __all__ = ["list_projects",
@@ -75,7 +75,7 @@ def get_instances(compute: discovery.Resource, project: str) -> list:
         return instances
 
 
-def namevalid(project_id: str, name: str = "bda-") -> bool:
+def isValid(project_id: str, name: str = "bda-") -> bool:
     if not project_id.startswith(name):
         return False
     return True
