@@ -71,7 +71,11 @@ The tools will depending on the usage and services, but currently will focus on 
 
 ## Usage
 
-Currently the program is not support retrieving list of student from Web API, but only from txt format files. After Install the project, create a list of Project ID and link it through "deploy_instance.py" in main function, and run the file.
+Before runing any file in this application, please make sure to set a default google account to be used by the application in step 3 of Installation.
+
+Run file deploy_instance_test.py to test for packages import and main functions of the application. Once all the tests passed, heads to deploy_instance.py to run the main file.
+
+The command line will shows names of the successfully deployed project_id and completion time if USER_TIMER is set to TRUE
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
