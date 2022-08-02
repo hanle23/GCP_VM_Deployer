@@ -8,7 +8,7 @@ __all__ = ["list_projects",
            "create_firewall",
            "choose_zone",
            "get_instances",
-           "namevalid", "get_zone",
+           "name_valid", "get_zone",
            "get_instance_names",
            "create_instance",
            "delete_instance",
@@ -115,7 +115,7 @@ def get_instances(compute: discovery.Resource, project_id: str) -> list:
         return instances
 
 
-def namevalid(project_id: str, criteria: str = "bda-") -> bool:
+def name_valid(project_id: str, criteria: str = "bda-") -> bool:
     '''
     A string checking function for specific criteria
 
@@ -278,7 +278,7 @@ def main(wait=True):
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
         project_id = project['projectId']
-        if not namevalid(project_id):
+        if not name_valid(project_id):
             continue
         if project_id not in student_list:
             continue

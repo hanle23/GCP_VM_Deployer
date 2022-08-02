@@ -77,12 +77,15 @@ Run file deploy_instance_test.py to test for packages import and main functions 
 
 The command line will shows names of the successfully deployed project_id and completion time if USER_TIMER is set to TRUE
 
+The current repo has 2 branches, main branch is stable and config-setup is in production.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 
 ## Roadmap
 
+- [] Finish packaging config-setup branch
 - [] Re-configure the setup.py file
 - [] Create Web API retriever
 - [] Create Database
