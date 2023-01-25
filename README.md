@@ -85,8 +85,8 @@ The current repo has 2 branches, main branch is stable and config-setup is in pr
 
 ## Roadmap
 
-- [] Finish packaging config-setup branch
-- [] Re-configure the setup.py file
+- [x] Finish packaging config-setup branch
+- [x] Re-configure the setup.py file
 - [] Create Web API retriever
 - [] Create Database
 - [] Create Web Interface
