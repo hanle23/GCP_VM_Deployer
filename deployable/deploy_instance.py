@@ -8,7 +8,7 @@ __all__ = ["list_projects",
            "create_firewall",
            "choose_zone",
            "get_instances",
-           "namevalid", "get_zone",
+           "isValid", "get_zone",
            "get_instance_names",
            "create_instance",
            "delete_instance",
@@ -169,7 +169,7 @@ def main(wait=True):
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
         project_id = project['projectId']
-        if not namevalid(project_id):
+        if not isValid(project_id):
             continue
         if project_id not in student_list:
             continue
