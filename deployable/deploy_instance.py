@@ -8,11 +8,14 @@ __all__ = ["list_projects",
            "create_firewall",
            "choose_zone",
            "get_instances",
-           "isValid", "get_zone",
+           "get_static_ip",
+           "name_valid", "get_zone",
            "get_instance_names",
+           "create_static_ip",
            "create_instance",
            "delete_instance",
-           "delete_firewall"]
+           "delete_firewall",
+           "delete_static_IP", ]
 
 # Parameter for usage of USE_DATABASE and USE_TIMER
 USE_DATABASE = False
@@ -24,12 +27,25 @@ USE_TIMER = True
 
 
 def list_projects(service: discovery.Resource) -> list:
-    # Return a list of project associate with Default account as "Editor"
+    '''
+    Return a list of project associate with Default account as "Editor"
+    Service : Service object from Google Cloud Web API
+    Return the list of project-id that has the default Google account as editor
+    '''
+
     result = service.projects().list().execute()
     return result.get('projects', [])
 
 
 def create_firewall(compute: discovery.Resource, project: str, firewall_rule: str = "sql-mon") -> bool:
+    '''
+    Generating Firewall Rules based on the config values
+    Compute : Compute object from Google Cloud Web API
+    project : name of the project-id that will be inserted the firewall rule
+    firewall_rule : name of the rule if not default
+    config : Please check the document for the config field at https://cloud.google.com/compute/docs/reference/rest/v1/firewalls/insert
+    Return : True if successfully added, False if otherwise
+    '''
     try:
         config = {
             "name": "sql-mon",
@@ -53,6 +69,13 @@ def create_firewall(compute: discovery.Resource, project: str, firewall_rule: st
 
 # Choose a stable deployed project to check for available zone
 def choose_zone(compute: discovery.Resource, region: str = "us-east", project_id: str = "img-store") -> str:
+    '''
+    Choosing an available zone that is currently UP as a string to deploy project into
+    compute : compute object retrieved from Google Web API
+    region : general region that the user wish to deploy the instance into
+    project_id : a fixed project_id that already set-up from user to access available zone
+    Return a String that contains the specific zone that is available and running
+    '''
     request = compute.zones().list(project=project_id)
     if request is not None:
         response = request.execute()
@@ -60,10 +83,16 @@ def choose_zone(compute: discovery.Resource, region: str = "us-east", project_id
             return zone['name'] if zone['name'].startswith(region) and zone['status'] == 'UP' else None
 
 
-def get_instances(compute: discovery.Resource, project: str) -> list:
+def get_instances(compute: discovery.Resource, project_id: str) -> list:
+    '''
+    Retrieving a list of instances in a specific project for information or checking
+    compute : compute object retrieved from Google Web API
+    project_id : a fixed project_id that already set-up from user to access available zone
+    Return a list of instances
+    '''
     instances = []
     try:
-        response = compute.instances().aggregatedList(project=project).execute()
+        response = compute.instances().aggregatedList(project=project_id).execute()
     except googleapiclient.errors.HttpError:
         return instances
     else:
@@ -75,25 +104,87 @@ def get_instances(compute: discovery.Resource, project: str) -> list:
         return instances
 
 
-def isValid(project_id: str, name: str = "bda-") -> bool:
-    if not project_id.startswith(name):
+def name_valid(project_id: str, criteria: str = "bda-") -> bool:
+    '''
+    A string checking function for specific criteria
+    project_id : the name that will be checking
+    name : The beginning of the name that fits criteria
+    Return True if name fits the criteria, False if otherwise
+    '''
+    if not project_id.startswith(criteria):
         return False
     return True
 
 
-def get_zone(compute: discovery.Resource, project: str) -> str:
-    instance = "bda-db-1"
-    instances = get_instances(compute, project)
+def get_zone(compute: discovery.Resource, project_id: str, instance: str = "bda-db-1") -> str:
+    '''
+    Retrieving zone of a specific project_id and specific instance
+    compute : compute object retrieved from Google Web API
+    project_id : project that contains instance
+    instance : Name of the instance to search zone detail
+    return a String of Zone, empty String if not found
+    '''
+    zone = ""
+    instances = get_instances(compute, project_id)
     for current_instance in instances:
         name = current_instance[0]['name']
         if name == instance:
             zone = current_instance[0]['zone'].split("/")[-1]
             return zone
+        return zone
 
 
-def get_instance_names(compute: discovery.Resource, project: str) -> list:
+def create_static_ip(compute: discovery.Resource, project_id: str, zone: str, instance_name: str = "bda-db-1") -> bool:
+    '''
+    Create a static IP for the project
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project to generate static IP
+    zone : the zone to host static IP
+    name : naming for static IP
+    Return bool
+    '''
+    zone = zone[0:len(zone) - 2]
+    config = {
+        "networkTier": "STANDARD",
+        "name": instance_name,
+    }
+    try:
+        compute.addresses().insert(
+            project=project_id,
+            region=zone,
+            body=config).execute()
+
+    except googleapiclient.errors.HttpError:
+        return False  # Currently using False as a place holder, expect retrieving error as String for database update
+    else:
+        return True
+
+
+def get_static_ip(compute: discovery.Resource, project_id: str, zone: str, ip_name: str = "bda-db-1") -> dict:
+    '''
+    Retrieve response for a specific 
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that contains the static IP
+    zone : the zone that the static IP was created
+    ip_name : name of the static IP
+    Return dict object
+    '''
+    zone = zone[0:len(zone) - 2]
+    return compute.addresses().get(
+        project=project_id,
+        region=zone,
+        address=ip_name).execute()
+
+
+def get_instance_names(compute: discovery.Resource, project_id: str) -> list:
+    '''
+    An instances' name retriever for a specific project
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that will be searching
+    Return a list of instances in String
+    '''
     instance_names = []
-    instances = get_instances(compute, project)
+    instances = get_instances(compute, project_id)
     if instances is None:
         return instance_names
     for instance in instances:
@@ -102,11 +193,20 @@ def get_instance_names(compute: discovery.Resource, project: str) -> list:
     return instance_names
 
 
-def create_instance(compute: discovery.Resource, project: str, zone: str, instance_name: str = "bda-db-1") -> bool:
+def create_instance(compute: discovery.Resource, project_id: str, zone: str, ip_static: str,  instance_name: str = "bda-db-1") -> bool:
+    '''
+    An instance generator that deploy instance following the criteria in config
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that the instance will be deployed into
+    zone : name of a specific zone 
+    instance_name : the name of the instance that will be deployed
+    config : for details, please visit https://cloud.google.com/compute/docs/reference/rest/v1/instances/insert
+    Return True if successfully deployed, False if otherwise
+    '''
     machine_type = "zones/{}/machineTypes/n1-standard-1".format(zone)
     image = "projects/img-store/global/images/deb-sql-mongo-template-1-image-4"
     diskType = "projects/{project}/zones/{zone}/diskTypes/pd-ssd".format(
-        project=project, zone=zone)
+        project=project_id, zone=zone)
 
     config = {
         'name': instance_name,
@@ -127,14 +227,15 @@ def create_instance(compute: discovery.Resource, project: str, zone: str, instan
                 {
                     "type": "ONE_TO_ONE_NAT",
                     "name": "External NAT",
-                    "networkTier": "PREMIUM"
+                    "natIP": ip_static,
+                    "networkTier": "STANDARD",
                 }
             ]
         }]
     }
     try:
         compute.instances().insert(
-            project=project,
+            project=project_id,
             zone=zone,
             body=config).execute()
     except googleapiclient.errors.HttpError:
@@ -143,47 +244,81 @@ def create_instance(compute: discovery.Resource, project: str, zone: str, instan
         return True
 
 
-def delete_instance(compute: discovery.Resource, project: str, zone: str, name: str = "bda-db-1") -> None:
+def delete_instance(compute: discovery.Resource, project_id: str, zone: str, name: str = "bda-db-1") -> None:
+    '''
+    Delete the specific instance in the given project
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that contains the instance
+    zone : the zone that the project was deployed into
+    name : name of the instance that will be deleted
+    Return None
+    '''
     return compute.instances().delete(
-        project=project,
+        project=project_id,
         zone=zone,
         instance=name).execute()
 
 
-def delete_firewall(compute: discovery.Resource, project: str, firewall: str = "sql-mon") -> None:
+def delete_firewall(compute: discovery.Resource, project_id: str, firewall: str = "sql-mon") -> None:
+    '''
+    Delete the specific firewall rules in the given project
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that contains the firewall rules
+    firewall : name of the firewall rules that will be deleted
+    Return None
+    '''
     return compute.firewalls().delete(
-        project=project,
+        project=project_id,
         firewall=firewall).execute()
+
+
+def delete_static_IP(compute: discovery.Resource, project_id: str, zone: str, ip_name: str = "bda-db-1") -> None:
+    '''
+    Delete the specific static IP in the given project
+    compute : compute object retrieved from Google Web API
+    project_id : name of the project that contains the firewall rules
+    zone : the zone hosting static IP
+    ip_name : name of the static IP
+    Return None
+    '''
+    zone = zone[0:len(zone) - 2]
+    return compute.addresses().delete(
+        project=project_id,
+        region=zone,
+        address=ip_name).execute()
 
 
 def main(wait=True):
     print("Application starting")
-    start = time.process_time()
+    start = time.time()
     compute, service = authorize()
     projects = list_projects(service)
-    student_list = dataSource.get_student_id_txt("student_list.txt")
-    if not student_list:
+    student_list = dataSource("student_list.txt")
+    if len(student_list) == 0:
         print("Data has error while opening, application will be close now")
         exit()
     zone = choose_zone(compute)
     assert zone != None, "No zone start with us-east is up"
     for project in projects:
         project_id = project['projectId']
-        if not isValid(project_id):
+        if not name_valid(project_id):
             continue
         if project_id not in student_list:
             continue
+        create_static_ip(compute, project_id, zone)
+        response = get_static_ip(compute, project_id, zone)
         firewall = create_firewall(compute, project_id)
         if not firewall:
             continue
-        operation = create_instance(compute, project_id, zone)
+        operation = create_instance(
+            compute, project_id, zone, response['address'])
         if not operation:
             continue
         print('Project {} successfully deployed.'.format(project_id))
     print("Successfully complete application")
-    time_result = time.process_time() - start
+    time_result = time.time() - start
     if USE_TIMER:
-        print("The total time taken is: {} ms".format(time_result))
+        print("The total time taken is: {:.2f} s".format(time_result))
 
 
 if __name__ == '__main__':
