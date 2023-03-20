@@ -1,6 +1,6 @@
 from asyncio import sleep
 from context import deployable
-import googleapiclient.errors
+from googleapiclient import errors
 import unittest
 
 compute, service = deployable.authorize()
@@ -47,10 +47,8 @@ class DeployTestCase(unittest.TestCase):
             deployable.create_static_ip(compute, project, zone)
             try:
                 response = deployable.get_static_ip(compute, project, zone)
-            except googleapiclient.errors.HttpError:
+            except errors.HttpError:
                 assert False, response.get('message')
-            else:
-                assert True
             deployable.delete_static_IP(compute, project, zone)
 
 

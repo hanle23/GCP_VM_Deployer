@@ -1,13 +1,13 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
-# Parse version number from pyglet/__init__.py:
-with open('deployable/__init__.py') as f:
-    info = {}
-    for line in f:
-        if line.startswith('version'):
-            exec(line, info)
-            break
+# # Parse version number from pyglet/__init__.py:
+# with open('/deployable/__init__.py') as f:
+#     info = {}
+#     for line in f:
+#         if line.startswith('version'):
+#             exec(line, info)
+#             break
 
 
 setup_info = dict(
@@ -34,25 +34,14 @@ setup_info = dict(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
     ],
+    py_modules=[],
 
     # Package info
-    packages=find_packages(include=['deployable', 'deployable.*']),
     install_requires=[
-    'google_api_python_client',
-    'oauth2client' ,
-    'google-api-core',
-    'google-api-python-client',
-    'google-auth',
-    'google-auth-httplib2',
-    'googleapis-common-protos',
-    'httplib2',
-    'idna',
-    'oauth2client',
-    'requests',
-    'rsa',
-    'six',
-    'uritemplate',
-    'urllib3',
+        'google_api_python_client==2.81.0',
+        'oauth2client==4.1.3',
+        'requests==2.28.2',
+        'setuptools==65.5.0'
     ],
     # Add _ prefix to the names of temporary build dirs
     options={'build': {'build_base': '_build'}, },

@@ -1,6 +1,5 @@
-from googleapiclient import discovery
+from googleapiclient import discovery, errors
 from .access import authorize
-import googleapiclient.errors
 from .local_data import get_student_id_txt as dataSource
 import time
 
@@ -48,7 +47,7 @@ def create_firewall(compute: discovery.Resource, project: str, firewall_rule: st
     '''
     try:
         config = {
-            "name": "sql-mon",
+            "name": firewall_rule,
             "priority": 10000,
             "network": "global/networks/default",
             "allowed": [{
@@ -61,7 +60,7 @@ def create_firewall(compute: discovery.Resource, project: str, firewall_rule: st
         compute.firewalls().insert(
             project=project,
             body=config).execute()
-    except googleapiclient.errors.HttpError:
+    except errors.HttpError:
         return False
     else:
         return True
@@ -93,7 +92,7 @@ def get_instances(compute: discovery.Resource, project_id: str) -> list:
     instances = []
     try:
         response = compute.instances().aggregatedList(project=project_id).execute()
-    except googleapiclient.errors.HttpError:
+    except errors.HttpError:
         return instances
     else:
         for _, instance_scoped_list in response['items'].items():
@@ -154,7 +153,7 @@ def create_static_ip(compute: discovery.Resource, project_id: str, zone: str, in
             region=zone,
             body=config).execute()
 
-    except googleapiclient.errors.HttpError:
+    except errors.HttpError:
         return False  # Currently using False as a place holder, expect retrieving error as String for database update
     else:
         return True
@@ -238,7 +237,7 @@ def create_instance(compute: discovery.Resource, project_id: str, zone: str, ip_
             project=project_id,
             zone=zone,
             body=config).execute()
-    except googleapiclient.errors.HttpError:
+    except errors.HttpError:
         return False  # Currently using False as a place holder, expect retrieving error as String for database update
     else:
         return True
