@@ -59,7 +59,7 @@ The tools will depending on the usage and services, but currently will focus on 
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/hanle23/Deployable
+   git clone [https://github.com/hanle23/Deployable](https://github.com/hanle23/Virtual-Machine-Deployer)
    ```
 2. Install dependencies
    ```sh
