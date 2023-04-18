@@ -61,7 +61,10 @@ The tools will depending on the usage and services, but currently will focus on 
    ```sh
    git clone https://github.com/hanle23/Deployable
    ```
-2. Instal the Prerequisites
+2. Install dependencies
+   ```sh
+   pip install .
+   ```
 3. Make default google account
    ```sh
    gcloud auth application-default login
@@ -77,7 +80,7 @@ Run file deploy_instance_test.py to test for packages import and main functions 
 
 The command line will shows names of the successfully deployed project_id and completion time if USER_TIMER is set to TRUE
 
-The current repo has 2 branches, main branch is stable and config-setup is in production.
+The current repo has 2 branches, main branch is deployment and config-setup is for production.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

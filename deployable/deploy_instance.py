@@ -1,6 +1,6 @@
 from googleapiclient import discovery, errors
-from .access import authorize
-from .local_data import get_student_id_txt as dataSource
+from access import authorize
+from local_data import get_student_id_txt as dataSource
 import time
 
 __all__ = ["list_projects",
