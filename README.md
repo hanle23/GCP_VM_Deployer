@@ -31,7 +31,7 @@
 
 ## About The Project
 
-An automation tools to help deploying Cloud instances for administration purposes or development with flexible configurations.
+A tool that assist in bulk deployment of custom Virtual Machine to designated project in Google Cloud Platform for education purposes. The image that is being used contains Debian OS, MongoDB, MySQL with latest version fully setup, and a local password reset for local IP of the services.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
